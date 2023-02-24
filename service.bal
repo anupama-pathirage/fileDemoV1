@@ -1,37 +1,24 @@
-import ballerinax/azure_storage_service.blobs as blobs;
 import ballerina/http;
 
-type Address record {
-    string streetaddress;
-    string city;
-    string state;
-    string postalcode;
-};
+type Album readonly & record {|
+    string title;
+    string artist;
+|};
 
-type Personal record {
-    string firstname;
-    string lastname;
-    string gender;
-    int birthyear;
-    Address address;
-};
+table<Album> key(title) albums = table [
+    {title: "Blue Train", artist: "John Coltrane"},
+    {title: "Jeru", artist: "Gerry Mulligan"}
+];
 
-type Employee record {
-    string empid;
-    Personal personal;
-};
+service / on new http:Listener(9090) {
 
-configurable string accountName = ?;
-configurable string accessKeyOrSAS = ?;
-configurable string containerName = ?;
-
-final blobs:BlobClient blobClient = check createStorageClient();
-service /portal on new http:Listener(9090) {
-
-    resource function post employees/[string file](@http:Payload Employee[] employees) returns json|error {
-        return blobClient->putBlob(containerName, file,"BlockBlob", employees.toJsonString().toBytes());
+    // The path param is defined as a part of the resource path within brackets
+    // along with the type and it is extracted from the request URI.
+    resource function get albums/[string title]() returns Album|http:NotFound {
+        Album? album = albums[title];
+        if album is () {
+            return http:NOT_FOUND;
+        }
+        return album;
     }
 }
-
-function createStorageClient() returns blobs:BlobClient|error => 
-    check new ({accessKeyOrSAS, authorizationMethod: "accessKey", accountName});
