@@ -21,4 +21,8 @@ service / on new http:Listener(9090) {
         }
         return album;
     }
+
+    resource function get albums() returns Album[] {
+        return albums.toArray();
+    }
 }
